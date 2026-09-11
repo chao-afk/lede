@@ -1,3 +1,4 @@
+
 name: Build LEDE XR30
 on:
   workflow_dispatch:
@@ -32,22 +33,15 @@ jobs:
           cp $CONFIG_FILE .config
           make defconfig
 
-      - name: 构建并植入5G模组WebUI
+      - name: 植入5G模组WebUI（直接复制成品静态页面，不再build）
         run: |
-          # 安装Node.js构建环境
-          curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
-          sudo apt install -y nodejs
-          npm install -g pnpm
-          # 克隆WebUI源码
+          # 克隆WebUI仓库
           git clone https://github.com/panasonic850218/Webui.git modem-webui
-          cd modem-webui
-          # 安装依赖并构建生产版本
-          pnpm install
-          pnpm build
-          # 把构建好的页面复制到固件Web目录
+          # 创建固件网页存放目录
           mkdir -p ../package/base-files/files/www/modem
-          cp -rf dist/* ../package/base-files/files/www/modem/
-          # 写入默认配置（路由器IP+AT服务端口）
+          # 复制web目录下所有静态文件
+          cp -rf modem-webui/web/* ../package/base-files/files/www/modem/
+          # 写入WebUI的config.json配置
           echo '{"status":"true","at":{"host":"192.168.1.1","port":8765}}' > ../package/base-files/files/www/modem/config.json
 
       - name: 执行后置脚本（开机配置）
@@ -64,4 +58,3 @@ jobs:
         with:
           name: lede-xr30-qmodem-webui
           path: bin/targets/mediatek/filogic/*.itb
-

@@ -1,60 +1,51 @@
-
-name: Build LEDE XR30
+name: Build XR30 LEDE
 on:
   workflow_dispatch:
 
-env:
-  CONFIG_FILE: xr30.config
-
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - name: 检出源码
         uses: actions/checkout@v4
 
       - name: 安装编译依赖
         run: |
-          sudo apt update -y
-          sudo apt full-upgrade -y
-          sudo apt install -y ack antlr3 asciidoc autoconf automake autopoint binutils bison build-essential \
-          bzip2 ccache clang cmake cpio curl device-tree-compiler flex gawk gcc-multilib g++-multilib gettext \
-          genisoimage git gperf haveged help2man intltool libc6-dev-i386 libelf-dev libfuse-dev libglib2.0-dev \
-          libgmp3-dev libltdl-dev libmpc-dev libmpfr-dev libncurses5-dev libncursesw5-dev libpython3-dev \
-          libreadline-dev libssl-dev libtool llvm lrzsz libnsl-dev ninja-build p7zip p7zip-full patch pkgconf \
-          python3 python3-pyelftools python3-setuptools qemu-utils rsync scons squashfs-tools subversion \
-          swig texinfo uglifyjs upx-ucl unzip vim wget xmlto xxd xz-utils zlib1g-dev
+          sudo apt update
+          sudo apt install -y build-essential libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev libpci-dev libiberty-dev autoconf llvm git rsync
 
-      - name: 执行前置脚本（添加QModem源）
-        run: chmod +x diy-part1.sh && ./diy-part1.sh
+      - name: 执行自定义前置脚本
+        run: |
+          chmod +x ./diy.sh
+          ./diy.sh
 
-      - name: 加载XR30配置
+      - name: 加载配置
         run: |
           cp $CONFIG_FILE .config
           make defconfig
+        env:
+          CONFIG_FILE: xr30.config
 
-      - name: 植入5G模组WebUI（直接复制成品静态页面，不再build）
+      - name: 植入5G模组WebUI静态页面
         run: |
-          # 克隆WebUI仓库
           git clone https://github.com/panasonic850218/Webui.git modem-webui
-          # 创建固件网页存放目录
           mkdir -p ../package/base-files/files/www/modem
-          # 复制web目录下所有静态文件
           cp -rf modem-webui/web/* ../package/base-files/files/www/modem/
-          # 写入WebUI的config.json配置
           echo '{"status":"true","at":{"host":"192.168.1.1","port":8765}}' > ../package/base-files/files/www/modem/config.json
 
-      - name: 执行后置脚本（开机配置）
-        run: chmod +x diy-part2.sh && ./diy-part2.sh
+      - name: 执行后置自定义脚本
+        run: |
+          chmod +x ./diy-part2.sh
+          ./diy-part2.sh
 
-      - name: 下载源码包
-        run: make download -j8
+      - name: 开始编译固件
+        run: make -j$(nproc) V=s
 
-      - name: 编译固件
-        run: make V=s -j$(nproc)
+      - name: 列出产出固件文件（方便核对）
+        run: ls -la bin/targets/mediatek/filogic/
 
       - name: 上传编译产物
         uses: actions/upload-artifact@v4
         with:
           name: lede-xr30-qmodem-webui
-          path: bin/targets/mediatek/filogic/*.itb
+          path: bin/targets/mediatek/filogic/*.bin

@@ -12,7 +12,7 @@ jobs:
       - name: 安装编译依赖
         run: |
           sudo apt update
-          sudo apt install -y build-essential libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev libpci-dev libiberty-dev autoconf llvm git rsync
+          sudo apt install -y build-essential libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm git rsync
 
       - name: 执行自定义前置脚本
         run: |

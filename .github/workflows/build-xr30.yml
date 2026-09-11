@@ -14,10 +14,11 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential libncurses-dev gawk flex bison openssl libssl-dev dkms libelf-dev libudev-dev libpci-dev libiberty-dev autoconf llvm git rsync
 
-      - name: 执行自定义前置脚本
+      - name: 执行前置自定义操作（内嵌，不再读取diy.sh）
         run: |
-          chmod +x ./diy.sh
-          ./diy.sh
+          echo 'src-git qmodem https://github.com/FUjr/QModem.git;main' >> feeds.conf.default
+          ./scripts/feeds update -a
+          ./scripts/feeds install -a
 
       - name: 加载配置
         run: |
